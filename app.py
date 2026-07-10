@@ -8,8 +8,61 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ===================== Page Basic Configuration =====================
-st.set_page_config(page_title="Impact Displacement Prediction of CFST", layout="wide")
-st.title("Impact Displacement Prediction System for recycled aggregate concrete-filled steel tube")
+st.set_page_config(
+    page_title="Impact Displacement Prediction of CFST",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# 全局紧凑样式
+st.markdown("""
+<style>
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 1.6rem !important;
+        text-align: center;
+        margin-bottom: 0.8rem;
+    }
+
+    h2 {
+        font-size: 1.2rem !important;
+        margin-top: 1rem;
+        margin-bottom: 0.6rem;
+    }
+
+    /* 输入组件间距收紧 */
+    .stNumberInput, .stSelectbox {
+        margin-bottom: 0.8rem;
+    }
+
+    /* 结果卡片 */
+    .result-card {
+        background-color: #e8f4ff;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+        margin-top: 0.5rem;
+    }
+
+    .result-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #1f77b4;
+    }
+
+    .result-label {
+        font-size: 0.95rem;
+        color: #444;
+        margin-bottom: 0.3rem;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 
 # ===================== Model Classes (Identical to training code, DO NOT MODIFY) =====================
@@ -202,7 +255,6 @@ def load_trained_model(model_path="bho_optimized_model.pth"):
     return model, checkpoint
 
 
-# Categorical feature encoding mapping (consistent with training labels)
 CONSTRAINT_MAP = {"Fixed-Fixed": 0, "Fixed-Simply Supported": 1, "Simply Supported-Simply Supported": 2}
 SHAPE_MAP = {"Circular": 0, "Square": 1}
 
@@ -227,23 +279,26 @@ def predict_displacement(model, checkpoint, input_params):
     return float(pred)
 
 
-# ===================== Main Interface Logic =====================
-# 1. Load model
+# ===================== Main Interface =====================
+# 1. Title
+st.title("Impact Displacement Prediction System for Recycled Aggregate Concrete-Filled Steel Tube")
+
+# 2. Load model (no success prompt)
 with st.spinner("Loading model, please wait..."):
     model, checkpoint = load_trained_model()
-st.success("✅ Model loaded successfully, ready for prediction")
 
-# 2. Sidebar parameter input form
-with st.sidebar:
-    st.header("Parameter Input")
-    st.subheader("Categorical Features")
+# 3. Parameter Input - three columns
+st.subheader("Parameter Input")
+col1, col2, col3 = st.columns(3)
+
+with col1:
     end_constraint = st.selectbox("End Constraint Type", options=list(CONSTRAINT_MAP.keys()), index=0)
     cross_sectional_shape = st.selectbox("Cross-section Shape", options=list(SHAPE_MAP.keys()), index=0)
-
-    st.subheader("Geometric and Material Parameters")
     cross_sectional_dimension = st.number_input("Cross-section Dimension (mm)", min_value=50.0, max_value=500.0,
                                                 value=140.0, step=1.0)
     clear_span = st.number_input("Clear Span (mm)", min_value=500.0, max_value=3000.0, value=1400.0, step=10.0)
+
+with col2:
     steel_tube_wall_thickness = st.number_input("Steel Tube Wall Thickness (mm)", min_value=1.0, max_value=20.0,
                                                 value=4.0, step=0.5)
     concrete_compressive_strength = st.number_input("Concrete Compressive Strength (MPa)", min_value=20.0,
@@ -253,14 +308,15 @@ with st.sidebar:
     recycled_ratio = st.number_input("Recycled Coarse Aggregate Replacement Ratio", min_value=0.0, max_value=1.0,
                                      value=0.5, step=0.05)
 
-    st.subheader("Load Parameters")
+with col3:
     axial_load_ratio = st.number_input("Axial Load Ratio", min_value=0.0, max_value=0.6, value=0.3, step=0.05)
     drop_height = st.number_input("Drop Hammer Height (m)", min_value=0.5, max_value=10.0, value=2.0, step=0.1)
     impact_mass = st.number_input("Impact Mass (kg)", min_value=10.0, max_value=500.0, value=50.0, step=1.0)
-
+    st.markdown("####")
     predict_btn = st.button("Start Prediction", type="primary", use_container_width=True)
 
-# 3. Prediction result display
+# 4. Prediction Result - bottom full width
+st.subheader("Prediction Result")
 if predict_btn:
     input_params = {
         "end_constraint": end_constraint,
@@ -279,8 +335,19 @@ if predict_btn:
     with st.spinner("Calculating..."):
         result = predict_displacement(model, checkpoint, input_params)
 
-    st.subheader("Prediction Result")
-    st.metric(label="Displacement at Impact Point", value=f"{result:.4f} mm")
+    st.markdown(f"""
+    <div class="result-card">
+        <div class="result-label">Displacement at Impact Point</div>
+        <div class="result-value">{result:.4f} mm</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     with st.expander("View input parameter details"):
         st.json(input_params)
+else:
+    st.markdown("""
+    <div class="result-card">
+        <div class="result-label">Displacement at Impact Point</div>
+        <div class="result-value">--</div>
+    </div>
+    """, unsafe_allow_html=True)
