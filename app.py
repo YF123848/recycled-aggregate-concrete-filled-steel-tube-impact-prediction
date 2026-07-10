@@ -27,6 +27,7 @@ st.markdown("""
     h1 {
         font-size: 1.6rem !important;
         text-align: center;
+        margin-top: 1.5rem !important;
         margin-bottom: 0.8rem;
     }
 
